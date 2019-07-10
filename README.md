@@ -30,14 +30,9 @@ gcloud auth application-default login
 
 ## Run
 
+Run locally with DirectRunner:
 ```sh
-cd customer
 python customer.py \
     --setup_file ./setup.py \
-    --runner DataflowRunner \
-    --project ${GCP_PROJECT} \
-    --region ${GCP_REGION} \
-    --temp_location gs://${GCP_BUCKET}/.tmp/ \
-    --staging_location gs://${GCP_BUCKET}/.stating \
-    --input gs://${GCP_BUCKET}/customer/customer-001.json
+    --detail_input ./pipeline/customer/testdata/detail.json
 ```
