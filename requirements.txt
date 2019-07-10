@@ -1,4 +1,7 @@
 apache-beam[gcp]==2.9.0
-# Development dependencies
+# Test coverage and linter dependencies
+coverage==4.5.3
 pycodestyle==2.4.0
 pylint==1.9.4
+# Nose is required for the Beam test pipeline
+nose==1.3.7

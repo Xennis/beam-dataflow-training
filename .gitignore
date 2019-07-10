@@ -4,3 +4,6 @@
 # Python
 *.pyc
 *.egg-info/
+
+# Local files
+.coverage
