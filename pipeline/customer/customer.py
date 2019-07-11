@@ -39,10 +39,16 @@ def run(argv=None):
         detail_broken | 'broken_details' >> common.Log()
         order_broken | 'orders' >> common.Log()
 
+        aggregated_orders = (
+            order_valid
+            | 'orders_by_customer' >> order.GroupByCustomer()
+            | 'aggregate_orders' >> beam.ParDo(order.AggregateOrders())
+        )
+
         joined = (
             {
                 'detail': detail_valid,
-                'order': order_valid | 'orders_by_customer' >> order.GroupByCustomer(),
+                'order': aggregated_orders,
             }
             | beam.CoGroupByKey()
         )
