@@ -11,7 +11,7 @@ from apache_beam.io.filesystems import FileSystems
 from apache_beam.testing.test_pipeline import TestPipeline
 from apache_beam.testing.util import assert_that, equal_to
 
-from pipeline.customer.order import Parse, Validate, GroupByCustomer, Prepare
+from pipeline.customer.order import Field, Parse, Validate, GroupByCustomer, AggregateOrders, Prepare
 
 
 class TestParse(unittest.TestCase):
@@ -259,6 +259,78 @@ class TestGroupByCustomer(unittest.TestCase):
                 | GroupByCustomer()
             )
             assert_that(actual, equal_to(expected))
+
+
+class TestAggregateOrders(unittest.TestCase):
+
+    def test_empty(self):
+        data = (3, [])
+        expected = [(3, {
+            Field.CustomerID: 3,
+            Field.Orders: [],
+            Field.Min: None,
+            Field.Max: None,
+            Field.Sum: None,
+            Field.Avg: None,
+        })]
+        actual = [data] | beam.ParDo(AggregateOrders())
+        self.assertEqual(expected, actual)
+
+    def test_single(self):
+        data = (3, [{
+            Field.Id: 3607,
+            Field.CustomerID: 3,
+            Field.TotalPrice: Decimal('373.02'),
+        }])
+        expected = [(3, {
+            Field.CustomerID: 3,
+            Field.Orders: [{
+                Field.Id: 3607,
+                Field.CustomerID: 3,
+                Field.TotalPrice: Decimal('373.02'),
+            }],
+            Field.Min: Decimal('373.02'),
+            Field.Max: Decimal('373.02'),
+            Field.Sum: Decimal('373.02'),
+            Field.Avg: Decimal('373.02'),
+        })]
+        actual = [data] | beam.ParDo(AggregateOrders())
+        self.assertEqual(expected, actual)
+
+    def test_multiple(self):
+        data = (3, [
+            {
+                Field.Id: 3607,
+                Field.CustomerID: 3,
+                Field.TotalPrice: Decimal('373.02'),
+            },
+            {
+                Field.Id: 3949,
+                Field.CustomerID: 3,
+                Field.TotalPrice: Decimal('702.88'),
+            },
+        ])
+        expected = [(3, {
+            Field.CustomerID: 3,
+            Field.Orders: [
+                {
+                    Field.Id: 3607,
+                    Field.CustomerID: 3,
+                    Field.TotalPrice: Decimal('373.02'),
+                },
+                {
+                    Field.Id: 3949,
+                    Field.CustomerID: 3,
+                    Field.TotalPrice: Decimal('702.88'),
+                },
+            ],
+            Field.Min: Decimal('373.02'),
+            Field.Max: Decimal('702.88'),
+            Field.Sum: Decimal('1075.90'),
+            Field.Avg: Decimal('537.95'),
+        })]
+        actual = [data] | beam.ParDo(AggregateOrders())
+        self.assertEqual(expected, actual)
 
 
 class TestPrepare(unittest.TestCase):
