@@ -16,4 +16,5 @@ max-line-length=120
 # --disable=W".
 disable=abstract-method,
         invalid-name,
-        missing-docstring
+        missing-docstring,
+        duplicate-code
