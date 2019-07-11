@@ -36,8 +36,8 @@ def run(argv=None):
         detail_valid, detail_broken = (p | 'detail' >> detail.Prepare(known_args.detail_input))
         order_valid, order_broken = (p | 'order' >> order.Prepare(known_args.order_input))
 
-        detail_broken | 'broken_details' >> common.Log()
-        order_broken | 'orders' >> common.Log()
+        detail_broken | 'broken_details' >> common.Log(prefix="Broken Details")
+        order_broken | 'broken_orders' >> common.Log(prefix="Broken Orders")
 
         aggregated_orders = (
             order_valid
@@ -53,4 +53,4 @@ def run(argv=None):
             | beam.CoGroupByKey()
         )
 
-        joined | 'joined_log' >> common.Log()
+        joined | 'joined_log' >> common.Log(prefix="Joined Output")
