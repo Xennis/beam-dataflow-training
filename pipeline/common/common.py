@@ -12,6 +12,7 @@ class Log(beam.PTransform):
     def expand(self, input_or_inputs):
         return input_or_inputs | beam.FlatMap(self._log)
 
-    def _log(self, element):
+    @staticmethod
+    def _log(element):
         logging.info(element)
         yield element
