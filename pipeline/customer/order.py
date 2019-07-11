@@ -20,6 +20,12 @@ class Field(object):
     CustomerID = 'customer_id'
     TotalPrice = 'total_price'
 
+    Orders = 'orders'
+    Min = 'min'
+    Max = 'max'
+    Sum = 'sum'
+    Avg = 'avg'
+
     Element = 'element'
     Error = 'error'
 
@@ -96,6 +102,30 @@ class GroupByCustomer(beam.PTransform):
         _order_id, entry = element
         customer_id = entry.get(Field.CustomerID)
         yield customer_id, entry
+
+
+class AggregateOrders(beam.DoFn):
+
+    def process(self, element, *args, **kwargs):
+        customer_id, entries = element
+        min_total = None
+        max_total = None
+        sum_total = None
+        count = 0
+        for entry in entries:
+            total = entry.get(Field.TotalPrice)
+            count += 1
+            min_total = min(min_total, total) if min_total else total
+            max_total = max(max_total, total)
+            sum_total = sum_total + total if sum_total else total
+        yield customer_id, {
+            Field.CustomerID: customer_id,
+            Field.Orders: entries,
+            Field.Min: min_total,
+            Field.Max: max_total,
+            Field.Sum: sum_total,
+            Field.Avg: None if count == 0 else sum_total / count,
+        }
 
 
 class Prepare(beam.PTransform):
