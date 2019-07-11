@@ -30,5 +30,5 @@ def run(argv=None):
         # pylint: disable=expression-not-assigned
         detail_valid, detail_broken = (p | 'detail' >> detail.Prepare(known_args.detail_input))
 
-        detail_valid | 'valid_log' >> beam.ParDo(common.Log())
-        detail_broken | 'broken_log' >> beam.ParDo(common.Log())
+        detail_valid | 'valid_log' >> common.Log()
+        detail_broken | 'broken_log' >> common.Log()
