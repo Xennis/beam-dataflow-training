@@ -11,7 +11,7 @@ from apache_beam.io.filesystems import FileSystems
 from apache_beam.testing.test_pipeline import TestPipeline
 from apache_beam.testing.util import assert_that, equal_to
 
-from pipeline.customer.order import Parse, Validate, Prepare
+from pipeline.customer.order import Parse, Validate, GroupByCustomer, Prepare
 
 
 class TestParse(unittest.TestCase):
@@ -144,6 +144,121 @@ class TestValidate(unittest.TestCase):
         ]
         actual = [data] | beam.ParDo(Validate())
         self.assertEqual(expected, actual)
+
+
+class TestGroupByCustomer(unittest.TestCase):
+
+    def test_empty(self):  # pylint: disable=no-self-use
+        data = []
+        expected = []
+
+        with TestPipeline() as p:
+            actual = (
+                p
+                | beam.Create(data)
+                | GroupByCustomer()
+            )
+            assert_that(actual, equal_to(expected))
+
+    def test_single(self):  # pylint: disable=no-self-use
+        data = [(880, {
+            'id': 880,
+            'customer_id': 1,
+            'total_price': '287.69',
+        })]
+        expected = [(1, [{
+            'id': 880,
+            'customer_id': 1,
+            'total_price': '287.69',
+        }])]
+
+        with TestPipeline() as p:
+            actual = (
+                p
+                | beam.Create(data)
+                | GroupByCustomer()
+            )
+            assert_that(actual, equal_to(expected))
+
+    def test_multiple(self):  # pylint: disable=no-self-use
+        data = [
+            (3607, {
+                'id': 3607,
+                'customer_id': 3,
+                'total_price': '373.02',
+            }),
+            (3949, {
+                'id': 3949,
+                'customer_id': 3,
+                'total_price': '702.88',
+            }),
+        ]
+        expected = [(3, [
+            {
+                'id': 3607,
+                'customer_id': 3,
+                'total_price': '373.02',
+            },
+            {
+                'id': 3949,
+                'customer_id': 3,
+                'total_price': '702.88',
+            },
+        ])]
+
+        with TestPipeline() as p:
+            actual = (
+                p
+                | beam.Create(data)
+                | GroupByCustomer()
+            )
+            assert_that(actual, equal_to(expected))
+
+    def test_mixed(self):  # pylint: disable=no-self-use
+        data = [
+            (880, {
+                'id': 880,
+                'customer_id': 1,
+                'total_price': '287.69',
+            }),
+            (3607, {
+                'id': 3607,
+                'customer_id': 3,
+                'total_price': '373.02',
+            }),
+            (3949, {
+                'id': 3949,
+                'customer_id': 3,
+                'total_price': '702.88',
+            }),
+        ]
+        expected = [
+            (1, [{
+                'id': 880,
+                'customer_id': 1,
+                'total_price': '287.69',
+            }]),
+            (3, [
+                {
+                    'id': 3607,
+                    'customer_id': 3,
+                    'total_price': '373.02',
+                },
+                {
+                    'id': 3949,
+                    'customer_id': 3,
+                    'total_price': '702.88',
+                },
+            ]),
+        ]
+
+        with TestPipeline() as p:
+            actual = (
+                p
+                | beam.Create(data)
+                | GroupByCustomer()
+            )
+            assert_that(actual, equal_to(expected))
 
 
 class TestPrepare(unittest.TestCase):

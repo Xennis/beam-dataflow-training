@@ -8,7 +8,7 @@ import apache_beam as beam
 from apache_beam.options.pipeline_options import PipelineOptions, SetupOptions
 
 from pipeline.common import common
-from pipeline.customer import detail
+from pipeline.customer import detail, order
 
 
 def run(argv=None):
@@ -17,6 +17,11 @@ def run(argv=None):
         '--detail_input',
         type=str,
         help='Input file pattern for the customer details',
+        required=True)
+    parser.add_argument(
+        '--order_input',
+        type=str,
+        help='Input file pattern for the customer orders',
         required=True)
 
     known_args, pipeline_args = parser.parse_known_args(argv)
@@ -29,6 +34,17 @@ def run(argv=None):
     with beam.Pipeline(options=pipeline_options) as p:
         # pylint: disable=expression-not-assigned
         detail_valid, detail_broken = (p | 'detail' >> detail.Prepare(known_args.detail_input))
+        order_valid, order_broken = (p | 'order' >> order.Prepare(known_args.order_input))
 
-        detail_valid | 'valid_log' >> common.Log()
-        detail_broken | 'broken_log' >> common.Log()
+        detail_broken | 'broken_details' >> common.Log()
+        order_broken | 'orders' >> common.Log()
+
+        joined = (
+            {
+                'detail': detail_valid,
+                'order': order_valid | 'orders_by_customer' >> order.GroupByCustomer(),
+            }
+            | beam.CoGroupByKey()
+        )
+
+        joined | 'joined_log' >> common.Log()
