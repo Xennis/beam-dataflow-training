@@ -3,6 +3,7 @@ from __future__ import absolute_import
 from __future__ import unicode_literals
 
 import argparse
+import logging
 
 import apache_beam as beam
 from apache_beam.options.pipeline_options import PipelineOptions, SetupOptions
@@ -32,6 +33,10 @@ def run(argv=None):
     # Details see https://cloud.google.com/dataflow/docs/resources/faq#how_do_i_handle_nameerrors
     pipeline_options.view_as(SetupOptions).save_main_session = True
     with beam.Pipeline(options=pipeline_options) as p:
+
+        # TODO:
+        logging.info("Started")
+
         # pylint: disable=expression-not-assigned
         detail_valid, detail_broken = (p | 'detail' >> detail.Prepare(known_args.detail_input))
         order_valid, order_broken = (p | 'order' >> order.Prepare(known_args.order_input))
