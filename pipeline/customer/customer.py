@@ -2,12 +2,12 @@
 from __future__ import absolute_import
 from __future__ import unicode_literals
 
-import argparse
 import json
 
 import apache_beam as beam
 from apache_beam.io import WriteToText
 from apache_beam.options.pipeline_options import PipelineOptions, SetupOptions
+from apache_beam.options.value_provider import ValueProvider  # pylint: disable=unused-import
 
 from pipeline.common import common
 from pipeline.customer import detail, order
@@ -61,6 +61,11 @@ class Validate(beam.DoFn):
 
 class JsonFormatter(beam.DoFn):
 
+    def __init__(self, aggregation):
+        # type: (ValueProvider) -> None
+        super(JsonFormatter, self).__init__()
+        self._aggregation = aggregation
+
     def process(self, element, *args, **kwargs):
         customer_id, entry = element
         customer_detail = entry.get(Field.Detail)
@@ -69,44 +74,56 @@ class JsonFormatter(beam.DoFn):
             customer_detail = {}
         if not customer_orders:
             customer_orders = {}
-        yield json.dumps({
+        output = {
             'id': customer_id,
             'first_name': customer_detail.get(detail.Field.FirstName),
             'last_name': customer_detail.get(detail.Field.LastName),
-            'sum': customer_orders.get(order.Field.Sum),
+            # self.aggregation is a ValueProvider. We need to `get` the value.
+            self._aggregation.get(): customer_orders.get(self._aggregation.get()),
             'errors': entry.get(Field.Errors),
-        }, sort_keys=True, cls=common.PipelineJSONEncoder)
+        }
+        yield json.dumps(output, sort_keys=True, cls=common.PipelineJSONEncoder)
+
+
+class CustomerPipelineOptions(PipelineOptions):
+
+    @classmethod
+    def _add_argparse_args(cls, parser):
+        parser.add_argument(
+            '--detail_input',
+            type=str,
+            help='Input file pattern for the customer details',
+            required=True)
+        parser.add_argument(
+            '--order_input',
+            type=str,
+            help='Input file pattern for the customer orders',
+            required=True)
+        parser.add_argument(
+            '--output',
+            type=str,
+            help='Output file pattern',
+            required=True)
+        parser.add_value_provider_argument(
+            '--output_aggregation',
+            type=str,
+            help='Aggregation that is output',
+            choices=['min', 'max', 'sum', 'avg']
+        )
 
 
 def run(argv=None):
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        '--detail_input',
-        type=str,
-        help='Input file pattern for the customer details',
-        required=True)
-    parser.add_argument(
-        '--order_input',
-        type=str,
-        help='Input file pattern for the customer orders',
-        required=True)
-    parser.add_argument(
-        '--output',
-        type=str,
-        help='Output file pattern',
-        required=True)
-
-    known_args, pipeline_args = parser.parse_known_args(argv)
-
-    pipeline_options = PipelineOptions(pipeline_args)
+    pipeline_options = PipelineOptions(argv)
     # Save the main session that defines global import, functions and variables. Otherwise they are not saved during
     # the serialization.
     # Details see https://cloud.google.com/dataflow/docs/resources/faq#how_do_i_handle_nameerrors
     pipeline_options.view_as(SetupOptions).save_main_session = True
+    # Get our custom options
+    customer_options = pipeline_options.view_as(CustomerPipelineOptions)
     with beam.Pipeline(options=pipeline_options) as p:
         # pylint: disable=expression-not-assigned
-        detail_valid, detail_broken = (p | 'detail' >> detail.Prepare(known_args.detail_input))
-        order_valid, order_broken = (p | 'order' >> order.Prepare(known_args.order_input))
+        detail_valid, detail_broken = (p | 'detail' >> detail.Prepare(customer_options.detail_input))
+        order_valid, order_broken = (p | 'order' >> order.Prepare(customer_options.order_input))
 
         detail_broken | 'broken_details' >> common.Log(prefix="Broken Details")
         order_broken | 'broken_orders' >> common.Log(prefix="Broken Orders")
@@ -124,7 +141,7 @@ def run(argv=None):
             }
             | 'join' >> beam.CoGroupByKey()
             | 'validate' >> beam.ParDo(Validate())
-            | 'format_json' >> beam.ParDo(JsonFormatter())
+            | 'format_json' >> beam.ParDo(JsonFormatter(customer_options.output_aggregation))
         )
 
-        formatted | 'write_file' >> WriteToText(known_args.output, '.json')
+        formatted | 'write_file' >> WriteToText(customer_options.output, '.json')

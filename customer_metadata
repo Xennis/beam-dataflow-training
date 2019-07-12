@@ -1,0 +1,14 @@
+{
+    "name": "Customer",
+    "description": "The customer pipeline calculates the orders of a customer.",
+    "parameters": [
+        {
+            "name": "output_aggregation",
+            "label": "Output aggregation",
+            "help_text": "Aggregation that is output: min, max, sum or avg",
+            "regexes": [
+                "^(min|max|sum|avg)$"
+            ]
+        }
+    ]
+}
