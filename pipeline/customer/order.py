@@ -112,7 +112,13 @@ class AggregateOrders(beam.DoFn):
         max_total = None
         sum_total = None
         count = 0
+        errors = []
         for entry in entries:
+            error = entry.get(Field.Error)
+            if error:
+                errors.append(error)
+            if errors:
+                continue
             total = entry.get(Field.TotalPrice)
             count += 1
             min_total = min(min_total, total) if min_total else total
@@ -125,6 +131,7 @@ class AggregateOrders(beam.DoFn):
             Field.Max: max_total,
             Field.Sum: sum_total,
             Field.Avg: None if count == 0 else sum_total / count,
+            Field.Error: errors,
         }
 
 

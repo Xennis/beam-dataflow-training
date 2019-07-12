@@ -3,12 +3,78 @@ from __future__ import absolute_import
 from __future__ import unicode_literals
 
 import argparse
+import json
 
 import apache_beam as beam
 from apache_beam.options.pipeline_options import PipelineOptions, SetupOptions
 
 from pipeline.common import common
 from pipeline.customer import detail, order
+
+
+# pylint: disable=too-few-public-methods
+class Field(object):
+    CustomerId = 'customer_id'
+    Detail = 'detail'
+    Orders = 'orders'
+
+    Errors = 'errors'
+
+
+class Validate(beam.DoFn):
+
+    def process(self, element, *args, **kwargs):
+        customer_id, entry = element
+
+        # we only get iterables but we need lists to check the length
+        details = list(entry.get(Field.Detail, []))
+        orders = list(entry.get(Field.Orders, []))
+        errors = []
+
+        customer_detail = None
+        if not details:
+            errors.append('no customer details')
+        elif len(details) == 1:
+            customer_detail = details[0]
+            derr = customer_detail.get(detail.Field.Error)
+            if derr:
+                errors.append(derr)
+        else:
+            errors.append('multiple customer details')
+
+        customer_orders = None
+        if len(orders) > 1:
+            # Alternatively, skip the GroupByKey before, have it been grouped here, and do the aggregation afterwards.
+            errors.append('multiple order records')
+        elif orders:
+            customer_orders = orders[0]
+            errors.extend(customer_orders.get(order.Field.Error))
+
+        yield customer_id, {
+            Field.CustomerId: customer_id,
+            Field.Detail: customer_detail,
+            Field.Orders: customer_orders,
+            Field.Errors: errors,
+        }
+
+
+class JsonFormatter(beam.DoFn):
+
+    def process(self, element, *args, **kwargs):
+        customer_id, entry = element
+        customer_detail = entry.get(Field.Detail)
+        customer_orders = entry.get(Field.Orders)
+        if not customer_detail:
+            customer_detail = {}
+        if not customer_orders:
+            customer_orders = {}
+        yield json.dumps({
+            'id': customer_id,
+            'first_name': customer_detail.get(detail.Field.FirstName),
+            'last_name': customer_detail.get(detail.Field.LastName),
+            'sum': customer_orders.get(order.Field.Sum),
+            'errors': entry.get(Field.Errors),
+        }, sort_keys=True, cls=common.PipelineJSONEncoder)
 
 
 def run(argv=None):
@@ -45,12 +111,14 @@ def run(argv=None):
             | 'aggregate_orders' >> beam.ParDo(order.AggregateOrders())
         )
 
-        joined = (
+        formatted = (
             {
-                'detail': detail_valid,
-                'order': aggregated_orders,
+                Field.Detail: detail_valid,
+                Field.Orders: aggregated_orders,
             }
-            | beam.CoGroupByKey()
+            | 'join' >> beam.CoGroupByKey()
+            | 'validate' >> beam.ParDo(Validate())
+            | 'format_json' >> beam.ParDo(JsonFormatter())
         )
 
-        joined | 'joined_log' >> common.Log(prefix="Joined Output")
+        formatted | 'formatted_log' >> common.Log(prefix="Formatted Output")

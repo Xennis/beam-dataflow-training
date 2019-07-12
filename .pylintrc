@@ -17,4 +17,5 @@ max-line-length=120
 disable=abstract-method,
         invalid-name,
         missing-docstring,
-        duplicate-code
+        duplicate-code,
+        too-many-arguments
