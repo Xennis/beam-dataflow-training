@@ -32,12 +32,8 @@ class Parse(beam.DoFn):
         self.broken_data_counter = Metrics.counter(self.__class__, 'errors')
 
     def process(self, element, *args, **kwargs):
-        try:
-            row = json.loads(element, encoding='utf-8')
-            yield self.parse_row(row)
-        except (TypeError, ValueError) as e:
-            yield pvalue.TaggedOutput(self.TAG_BROKEN_DATA, {Field.Element: element, Field.Error: e.message})
-            self.broken_data_counter.inc()
+        # TODO: See tests. Make use of the counter.
+        pass
 
     @staticmethod
     def parse_row(row):
@@ -55,15 +51,16 @@ class Parse(beam.DoFn):
 class Validate(beam.DoFn):
 
     def process(self, element, *args, **kwargs):
-        detail_id, entry = element
+        # TODO: Get data from element.
+        detail_id = None
         errors = []
-        first_name = entry.get(Field.FirstName)
+        first_name = None
         if not first_name:
             errors.append('first name is missing')
-        last_name = entry.get(Field.LastName)
+        last_name = None
         if not last_name:
             errors.append('last name is missing')
-        email = entry.get(Field.Email)
+        email = None
         if email and '@' not in email:  # Email is optional
             errors.append('email \'{}\' is invalid'.format(email))
             email = None
@@ -84,18 +81,10 @@ class Prepare(beam.PTransform):
         self.file_pattern = file_pattern
 
     def expand(self, input_or_inputs):
+        # TODO: Put components together. See tests.
 
-        parsed_records = (
-            input_or_inputs
-            | 'read' >> ReadFromText(self.file_pattern)
-            | 'parse' >> beam.ParDo(Parse()).with_outputs(Parse.TAG_BROKEN_DATA, main='parsed')
-        )
+        broken_records = None
 
-        broken_records = parsed_records[Parse.TAG_BROKEN_DATA]
-
-        valid_records = (
-            parsed_records['parsed']
-            | 'validate' >> beam.ParDo(Validate())
-        )
+        valid_records = None
 
         return valid_records, broken_records

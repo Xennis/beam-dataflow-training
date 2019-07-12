@@ -3,6 +3,7 @@ from __future__ import absolute_import
 from __future__ import unicode_literals
 
 import json
+import logging
 
 import apache_beam as beam
 from apache_beam.io import WriteToText
@@ -121,6 +122,10 @@ def run(argv=None):
     # Get our custom options
     customer_options = pipeline_options.view_as(CustomerPipelineOptions)
     with beam.Pipeline(options=pipeline_options) as p:
+
+        # TODO: Logging message
+        logging.info("Started")
+
         # pylint: disable=expression-not-assigned
         detail_valid, detail_broken = (p | 'detail' >> detail.Prepare(customer_options.detail_input))
         order_valid, order_broken = (p | 'order' >> order.Prepare(customer_options.order_input))

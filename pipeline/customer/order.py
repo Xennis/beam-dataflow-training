@@ -91,17 +91,8 @@ class Validate(beam.DoFn):
 class GroupByCustomer(beam.PTransform):
 
     def expand(self, input_or_inputs):
-        return (
-            input_or_inputs
-            | beam.FlatMap(self._rekey_by_customer)
-            | beam.GroupByKey()
-        )
-
-    @staticmethod
-    def _rekey_by_customer(element):
-        _order_id, entry = element
-        customer_id = entry.get(Field.CustomerID)
-        yield customer_id, entry
+        # TODO: Adjust the key and group.
+        pass
 
 
 class AggregateOrders(beam.DoFn):
