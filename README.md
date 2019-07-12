@@ -36,7 +36,8 @@ gcloud auth application-default login
 python customer.py \
     --setup_file ./setup.py \
     --detail_input ./pipeline/customer/testdata/detail.json \
-    --order_input ./pipeline/customer/testdata/order.json
+    --order_input ./pipeline/customer/testdata/order.json \
+    --output ./pipeline/customer/testdata/output
 ```
 
 ### Google Dataflow
@@ -53,7 +54,8 @@ python customer.py \
     --job_name customer-orders \
     --setup_file ./setup.py \
     --detail_input gs://dataflow-training-temp/customer/testdata/detail.json \
-    --order_input gs://dataflow-training-temp/customer/testdata/order.json
+    --order_input gs://dataflow-training-temp/customer/testdata/order.json \
+    --output gs://dataflow-training-temp/customer/output/output
 ```
 
 #### Compile a Dataflow template
@@ -68,7 +70,8 @@ python customer.py \
     --template_location gs://dataflow-training-persistent/templates/customer \
     --setup_file ./setup.py \
     --detail_input gs://dataflow-training-temp/customer/testdata/detail.json \
-    --order_input gs://dataflow-training-temp/customer/testdata/order.json
+    --order_input gs://dataflow-training-temp/customer/testdata/order.json \
+    --output gs://dataflow-training-temp/customer/output/output    
 ```
 
 #### Run a job from a Dataflow template

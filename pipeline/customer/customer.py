@@ -6,6 +6,7 @@ import argparse
 import json
 
 import apache_beam as beam
+from apache_beam.io import WriteToText
 from apache_beam.options.pipeline_options import PipelineOptions, SetupOptions
 
 from pipeline.common import common
@@ -89,6 +90,11 @@ def run(argv=None):
         type=str,
         help='Input file pattern for the customer orders',
         required=True)
+    parser.add_argument(
+        '--output',
+        type=str,
+        help='Output file pattern',
+        required=True)
 
     known_args, pipeline_args = parser.parse_known_args(argv)
 
@@ -121,4 +127,4 @@ def run(argv=None):
             | 'format_json' >> beam.ParDo(JsonFormatter())
         )
 
-        formatted | 'formatted_log' >> common.Log(prefix="Formatted Output")
+        formatted | 'write_file' >> WriteToText(known_args.output, '.json')
