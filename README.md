@@ -30,9 +30,54 @@ gcloud auth application-default login
 
 ## Run
 
-Run locally with DirectRunner:
+### Locally with DirectRunner
+
 ```sh
 python customer.py \
     --setup_file ./setup.py \
-    --detail_input ./pipeline/customer/testdata/detail.json
+    --detail_input ./pipeline/customer/testdata/detail.json \
+    --order_input ./pipeline/customer/testdata/order.json
 ```
+
+### Google Dataflow
+
+#### Directly with the DataflowRunner
+
+```sh
+python customer.py \
+    --runner DataflowRunner \
+    --project dataflow-training \
+    --region europe-west1 \
+    --staging_location gs://dataflow-training-temp/customer/staging \
+    --temp_location gs://dataflow-training-temp/temp \
+    --job_name customer-orders \
+    --setup_file ./setup.py \
+    --detail_input gs://dataflow-training-temp/customer/testdata/detail.json \
+    --order_input gs://dataflow-training-temp/customer/testdata/order.json
+```
+
+#### Compile a Dataflow template
+
+```sh
+python customer.py \
+    --runner DataflowRunner \
+    --project dataflow-training \
+    --region europe-west1 \
+    --staging_location gs://dataflow-training-persistent/customer/staging \
+    --temp_location gs://dataflow-training-temp/temp \
+    --template_location gs://dataflow-training-persistent/templates/customer \
+    --setup_file ./setup.py \
+    --detail_input gs://dataflow-training-temp/customer/testdata/detail.json \
+    --order_input gs://dataflow-training-temp/customer/testdata/order.json
+```
+
+#### Run a job from a Dataflow template
+
+```sh
+gcloud dataflow jobs run dataflow-training \
+    --region europe-west1 \
+    --max-workers 5 \
+    --gcs-location gs://dataflow-training-persistent/templates/customer
+```
+
+Alternatively, use the Dataflow UI or one of the options at https://cloud.google.com/dataflow/docs/guides/templates/executing-templates.
