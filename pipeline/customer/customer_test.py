@@ -170,7 +170,7 @@ class TestValidate(unittest.TestCase):
                 detail.Field.FirstName: 'Winny',
                 detail.Field.LastName: 'Tuppeny',
                 detail.Field.Email: 'wtuppeny2bandcamp.com',
-                detail.Field.Error: 'email \'wtuppeny2bandcamp.com\' is invalid',
+                detail.Field.Error: ['email \'wtuppeny2bandcamp.com\' is invalid'],
             }],
             customer.Field.Orders: [{
                 order.Field.CustomerID: 3,
@@ -200,7 +200,7 @@ class TestValidate(unittest.TestCase):
                 detail.Field.FirstName: 'Winny',
                 detail.Field.LastName: 'Tuppeny',
                 detail.Field.Email: 'wtuppeny2bandcamp.com',
-                detail.Field.Error: 'email \'wtuppeny2bandcamp.com\' is invalid',
+                detail.Field.Error: ['email \'wtuppeny2bandcamp.com\' is invalid'],
             },
             customer.Field.Orders: {
                 order.Field.CustomerID: 3,

@@ -39,7 +39,7 @@ class Validate(beam.DoFn):
             customer_detail = details[0]
             derr = customer_detail.get(detail.Field.Error)
             if derr:
-                errors.append(derr)
+                errors.extend(derr)
         else:
             errors.append('multiple customer details')
 
