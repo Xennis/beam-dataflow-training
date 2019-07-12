@@ -272,6 +272,7 @@ class TestAggregateOrders(unittest.TestCase):
             Field.Max: None,
             Field.Sum: None,
             Field.Avg: None,
+            Field.Error: [],
         })]
         actual = [data] | beam.ParDo(AggregateOrders())
         self.assertEqual(expected, actual)
@@ -293,6 +294,7 @@ class TestAggregateOrders(unittest.TestCase):
             Field.Max: Decimal('373.02'),
             Field.Sum: Decimal('373.02'),
             Field.Avg: Decimal('373.02'),
+            Field.Error: [],
         })]
         actual = [data] | beam.ParDo(AggregateOrders())
         self.assertEqual(expected, actual)
@@ -328,6 +330,45 @@ class TestAggregateOrders(unittest.TestCase):
             Field.Max: Decimal('702.88'),
             Field.Sum: Decimal('1075.90'),
             Field.Avg: Decimal('537.95'),
+            Field.Error: [],
+        })]
+        actual = [data] | beam.ParDo(AggregateOrders())
+        self.assertEqual(expected, actual)
+
+    def test_error(self):
+        data = (3, [
+            {
+                Field.Id: 3607,
+                Field.CustomerID: 3,
+                Field.TotalPrice: None,
+                Field.Error: 'total price \'I am not a price\' is invalid',
+            },
+            {
+                Field.Id: 3949,
+                Field.CustomerID: 3,
+                Field.TotalPrice: Decimal('702.88'),
+            },
+        ])
+        expected = [(3, {
+            Field.CustomerID: 3,
+            Field.Orders: [
+                {
+                    Field.Id: 3607,
+                    Field.CustomerID: 3,
+                    Field.TotalPrice: None,
+                    Field.Error: 'total price \'I am not a price\' is invalid',
+                },
+                {
+                    Field.Id: 3949,
+                    Field.CustomerID: 3,
+                    Field.TotalPrice: Decimal('702.88'),
+                },
+            ],
+            Field.Min: None,
+            Field.Max: None,
+            Field.Sum: None,
+            Field.Avg: None,
+            Field.Error: ['total price \'I am not a price\' is invalid'],
         })]
         actual = [data] | beam.ParDo(AggregateOrders())
         self.assertEqual(expected, actual)
