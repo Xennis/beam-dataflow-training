@@ -42,12 +42,23 @@ python customer.py \
 
 ### Google Dataflow
 
+Set the project ID of the GCP project
+
+```sh
+export GCP_PROJECT=<project-id>
+```
+
+Upload the test data to the GCP bucket
+```sh
+gsutil cp customer/testdata gs://dataflow-training-temp/customer/testdata
+```
+
 #### Directly with the DataflowRunner
 
 ```sh
 python customer.py \
     --runner DataflowRunner \
-    --project dataflow-training \
+    --project ${GCP_PROJECT} \
     --region europe-west1 \
     --staging_location gs://dataflow-training-temp/customer/staging \
     --temp_location gs://dataflow-training-temp/temp \
@@ -55,15 +66,17 @@ python customer.py \
     --setup_file ./setup.py \
     --detail_input gs://dataflow-training-temp/customer/testdata/detail.json \
     --order_input gs://dataflow-training-temp/customer/testdata/order.json \
-    --output gs://dataflow-training-temp/customer/output/output
+    --output gs://dataflow-training-temp/customer/output/output \
+    --output_aggregation avg
 ```
 
 #### Compile a Dataflow template
 
+Compile the template and upload it to the GCP bucket
 ```sh
 python customer.py \
     --runner DataflowRunner \
-    --project dataflow-training \
+    --project ${GCP_PROJECT} \
     --region europe-west1 \
     --staging_location gs://dataflow-training-persistent/customer/staging \
     --temp_location gs://dataflow-training-temp/temp \
@@ -71,16 +84,23 @@ python customer.py \
     --setup_file ./setup.py \
     --detail_input gs://dataflow-training-temp/customer/testdata/detail.json \
     --order_input gs://dataflow-training-temp/customer/testdata/order.json \
-    --output gs://dataflow-training-temp/customer/output/output    
+    --output gs://dataflow-training-temp/customer/output/output
+```
+
+Upload the metadata file next to the template
+```sh
+gsutil cp customer_metadata gs://dataflow-training-persistent/templates/
 ```
 
 #### Run a job from a Dataflow template
 
 ```sh
 gcloud dataflow jobs run dataflow-training \
+    --project ${GCP_PROJECT} \
     --region europe-west1 \
     --max-workers 5 \
-    --gcs-location gs://dataflow-training-persistent/templates/customer
+    --gcs-location gs://dataflow-training-persistent/templates/customer \
+    --parameters 'output_aggregation=min'
 ```
 
 Alternatively, use the Dataflow UI or one of the options at https://cloud.google.com/dataflow/docs/guides/templates/executing-templates.

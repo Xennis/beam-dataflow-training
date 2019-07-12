@@ -6,6 +6,7 @@ from decimal import Decimal
 import unittest
 
 import apache_beam as beam
+from apache_beam.options.value_provider import StaticValueProvider
 
 from pipeline.customer import customer, detail, order
 from pipeline.customer.customer import Validate, JsonFormatter
@@ -309,7 +310,7 @@ class TestJsonFormatter(unittest.TestCase):
             customer.Field.Errors: [],
         })
         expected = ['{"errors": [], "first_name": "Winny", "id": 3, "last_name": "Tuppeny", "sum": null}']
-        actual = [data] | beam.ParDo(JsonFormatter())
+        actual = [data] | beam.ParDo(JsonFormatter(StaticValueProvider(unicode, 'sum')))
         self.assertEqual(expected, actual)
 
     def test_nonempty(self):
@@ -342,7 +343,40 @@ class TestJsonFormatter(unittest.TestCase):
             customer.Field.Errors: [],
         })
         expected = ['{"errors": [], "first_name": "Winny", "id": 3, "last_name": "Tuppeny", "sum": "1075.90"}']
-        actual = [data] | beam.ParDo(JsonFormatter())
+        actual = [data] | beam.ParDo(JsonFormatter(StaticValueProvider(unicode, 'sum')))
+        self.assertEqual(expected, actual)
+
+    def test_nonempty_avg(self):
+        data = (3, {
+            order.Field.CustomerID: 3,
+            customer.Field.Detail: {
+                detail.Field.Id: 3,
+                detail.Field.FirstName: 'Winny',
+                detail.Field.LastName: 'Tuppeny',
+                detail.Field.Email: 'wtuppeny@bandcamp.com',
+            },
+            customer.Field.Orders: {
+                order.Field.Orders: [
+                    {
+                        order.Field.Id: 3607,
+                        order.Field.CustomerID: 3,
+                        order.Field.TotalPrice: Decimal('373.02'),
+                    },
+                    {
+                        order.Field.Id: 3949,
+                        order.Field.CustomerID: 3,
+                        order.Field.TotalPrice: Decimal('702.88'),
+                    },
+                ],
+                order.Field.Min: Decimal('373.02'),
+                order.Field.Max: Decimal('702.88'),
+                order.Field.Sum: Decimal('1075.90'),
+                order.Field.Avg: Decimal('537.95'),
+            },
+            customer.Field.Errors: [],
+        })
+        expected = ['{"avg": "537.95", "errors": [], "first_name": "Winny", "id": 3, "last_name": "Tuppeny"}']
+        actual = [data] | beam.ParDo(JsonFormatter(StaticValueProvider(unicode, 'avg')))
         self.assertEqual(expected, actual)
 
     def test_error(self):
@@ -376,5 +410,5 @@ class TestJsonFormatter(unittest.TestCase):
         })
         expected = ['{"errors": ["email \'wtuppeny2bandcamp.com\' is invalid"], "first_name": "Winny", "id": 3,' +
                     ' "last_name": "Tuppeny", "sum": "1075.90"}']
-        actual = [data] | beam.ParDo(JsonFormatter())
+        actual = [data] | beam.ParDo(JsonFormatter(StaticValueProvider(unicode, 'sum')))
         self.assertEqual(expected, actual)
