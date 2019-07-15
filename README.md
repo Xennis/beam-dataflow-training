@@ -46,7 +46,7 @@ export GCP_PROJECT=<project-id>
 
 Upload the test data to the GCP bucket
 ```sh
-gsutil cp customer/testdata gs://dataflow-training-temp/customer/testdata
+gsutil cp -r pipeline/customer/testdata gs://dataflow-training-temp/customer/testdata
 ```
 
 #### Directly with the DataflowRunner
