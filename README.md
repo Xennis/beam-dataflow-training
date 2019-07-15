@@ -37,7 +37,8 @@ python customer.py \
     --setup_file ./setup.py \
     --detail_input ./pipeline/customer/testdata/detail.json \
     --order_input ./pipeline/customer/testdata/order.json \
-    --output ./pipeline/customer/testdata/output
+    --output ./pipeline/customer/testdata/output \
+    --output_aggregation sum
 ```
 
 ### Google Dataflow
